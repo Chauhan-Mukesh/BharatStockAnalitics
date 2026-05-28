@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from time import time
 
 import structlog
 from fastapi import FastAPI, Request
@@ -74,6 +76,44 @@ def create_app() -> FastAPI:
     # Routers
     app.include_router(stocks.router)
     app.include_router(portfolio.router)
+
+    # Lightweight per-IP minute-window rate limiting for API routes.
+    request_window = defaultdict(deque)
+
+    @app.middleware("http")
+    async def rate_limit_middleware(request: Request, call_next):
+        if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+
+        limit = settings.rate_limit_per_minute
+        ip = request.client.host if request.client else "unknown"
+        now = time()
+        minute_ago = now - 60
+
+        bucket = request_window[ip]
+        while bucket and bucket[0] < minute_ago:
+            bucket.popleft()
+
+        if len(bucket) >= limit:
+            retry_after = max(1, int(60 - (now - bucket[0])))
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": "Rate limit exceeded. Please retry later.",
+                    "disclaimer": "Data is for informational use only.",
+                },
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-RateLimit-Limit": str(limit),
+                    "X-RateLimit-Remaining": "0",
+                },
+            )
+
+        bucket.append(now)
+        response = await call_next(request)
+        response.headers["X-RateLimit-Limit"] = str(limit)
+        response.headers["X-RateLimit-Remaining"] = str(max(0, limit - len(bucket)))
+        return response
 
     # Health check
     @app.get("/health", tags=["infra"])

@@ -181,7 +181,7 @@ pytest tests/ -v
 
 ## Configuration
 
-Create a `.env` file in `backend-api/`:
+Create a `.env` file in `backend-api/` (you can start from `backend-api/.env.example`; staging template is `backend-api/.env.staging.example`):
 
 ```env
 DATABASE_URL=******localhost:5432/bharatstocks
@@ -192,6 +192,8 @@ SECRET_KEY=your-secret-key-here
 APP_ENV=development
 DEBUG=false
 ```
+
+For Docker Compose, you can also copy root `.env.example` to `.env` and set secure values.
 
 ---
 
