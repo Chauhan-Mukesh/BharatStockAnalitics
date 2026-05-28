@@ -281,7 +281,17 @@ async def get_news(exchange: str, symbol: str):
     if cached:
         return cached
 
-    raw_news = await _news.get_news_for_stock(symbol, symbol)
+    company_name = symbol
+    try:
+        quote = await get_quote(exchange, symbol)
+        if isinstance(quote, dict):
+            company_name = quote.get("company_name") or symbol
+        else:
+            company_name = getattr(quote, "company_name", None) or symbol
+    except Exception:
+        company_name = symbol
+
+    raw_news = await _news.get_news_for_stock(symbol, company_name)
 
     # Classify sentiment via AI (best-effort)
     headlines = [n["headline"] for n in raw_news]

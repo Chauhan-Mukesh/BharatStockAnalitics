@@ -179,6 +179,8 @@ def xirr(cashflows: list[tuple[float, float]], guess: float = 0.1) -> Optional[f
     rate = guess
     for _ in range(100):
         numerator = sum(cf / (1 + rate) ** (days / 365) for cf, days in cashflows)
+        if abs(numerator) < 1e-7:
+            return round(rate * 100, 2)
         denominator = sum(
             -days / 365 * cf / (1 + rate) ** (days / 365 + 1)
             for cf, days in cashflows
@@ -186,10 +188,15 @@ def xirr(cashflows: list[tuple[float, float]], guess: float = 0.1) -> Optional[f
         if denominator == 0:
             return None
         new_rate = rate - numerator / denominator
+        if not math.isfinite(new_rate) or new_rate <= -0.999999:
+            return None
         if abs(new_rate - rate) < 1e-7:
             return round(new_rate * 100, 2)
         rate = new_rate
-    return round(rate * 100, 2)
+    final_npv = sum(cf / (1 + rate) ** (days / 365) for cf, days in cashflows)
+    if abs(final_npv) < 1e-4:
+        return round(rate * 100, 2)
+    return None
 
 
 # ---------------------------------------------------------------------------

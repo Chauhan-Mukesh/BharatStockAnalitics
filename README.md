@@ -82,6 +82,9 @@ BharatStockAnalitics/
 ```bash
 git clone https://github.com/Chauhan-Mukesh/BharatStockAnalitics.git
 cd BharatStockAnalitics
+export POSTGRES_USER=your_db_user
+export POSTGRES_PASSWORD=your_db_password
+export SECRET_KEY=your-strong-secret-key
 docker compose up -d
 ```
 
@@ -186,6 +189,7 @@ REDIS_URL=redis://localhost:6379/0
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2:7b
 SECRET_KEY=your-secret-key-here
+APP_ENV=development
 DEBUG=false
 ```
 

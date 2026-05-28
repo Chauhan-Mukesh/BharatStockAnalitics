@@ -8,15 +8,15 @@ services:
     image: postgres:16-alpine
     container_name: bharatstocks_postgres
     environment:
-      POSTGRES_USER: bharatstocks
-      POSTGRES_PASSWORD: bharatstocks
-      POSTGRES_DB: bharatstocks
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-bharatstocks}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bharatstocks"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,11 +58,13 @@ services:
       dockerfile: Dockerfile
     container_name: bharatstocks_api
     environment:
-      DATABASE_URL: "******postgres:5432/bharatstocks"
+      DATABASE_URL: "******postgres:5432/${POSTGRES_DB:-bharatstocks}"
       REDIS_URL: "redis://redis:6379/0"
       OLLAMA_BASE_URL: "http://ollama:11434"
       OLLAMA_MODEL: "qwen2:7b"
       DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      APP_ENV: ${APP_ENV:-development}
     ports:
       - "8000:8000"
     depends_on:
@@ -87,7 +89,7 @@ services:
     container_name: bharatstocks_migrations
     command: ["alembic", "upgrade", "head"]
     environment:
-      DATABASE_URL: "******postgres:5432/bharatstocks"
+      DATABASE_URL: "******postgres:5432/${POSTGRES_DB:-bharatstocks}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,7 +105,7 @@ services:
     container_name: bharatstocks_worker
     environment:
       REDIS_URL: "redis://redis:6379/0"
-      DATABASE_URL: "******postgres:5432/bharatstocks"
+      DATABASE_URL: "******postgres:5432/${POSTGRES_DB:-bharatstocks}"
       API_BASE_URL: "http://backend-api:8000"
     depends_on:
       redis:

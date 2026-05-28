@@ -4,6 +4,7 @@ import com.bharatstocks.data.model.*
 import com.bharatstocks.data.remote.ApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,13 +18,13 @@ sealed class Result<out T> {
 class StockRepository @Inject constructor(
     private val api: ApiService
 ) {
-    private val quoteCache = mutableMapOf<String, QuoteResponse>()
-    private val overviewCache = mutableMapOf<String, OverviewResponse>()
-    private val financialsCache = mutableMapOf<String, FinancialsResponse>()
-    private val technicalsCache = mutableMapOf<String, TechnicalsResponse>()
-    private val shareholdingCache = mutableMapOf<String, ShareholdingResponse>()
-    private val riskCache = mutableMapOf<String, RiskResponse>()
-    private val aiSummaryCache = mutableMapOf<String, AiSummaryResponse>()
+    private val quoteCache: MutableMap<String, QuoteResponse> = ConcurrentHashMap()
+    private val overviewCache: MutableMap<String, OverviewResponse> = ConcurrentHashMap()
+    private val financialsCache: MutableMap<String, FinancialsResponse> = ConcurrentHashMap()
+    private val technicalsCache: MutableMap<String, TechnicalsResponse> = ConcurrentHashMap()
+    private val shareholdingCache: MutableMap<String, ShareholdingResponse> = ConcurrentHashMap()
+    private val riskCache: MutableMap<String, RiskResponse> = ConcurrentHashMap()
+    private val aiSummaryCache: MutableMap<String, AiSummaryResponse> = ConcurrentHashMap()
 
     private fun cacheKey(exchange: String, symbol: String) = "$exchange:$symbol"
 

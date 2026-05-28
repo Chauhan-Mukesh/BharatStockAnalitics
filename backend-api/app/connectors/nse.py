@@ -72,6 +72,12 @@ class NseConnector:
             price_info = data.get("priceInfo", {})
             industry_info = data.get("industryInfo", {})
             metadata = data.get("metadata", {})
+            live_volume = (
+                price_info.get("totalTradedVolume")
+                or metadata.get("totalTradedVolume")
+                or data.get("securityWiseDP", {}).get("quantityTraded")
+                or data.get("preOpenMarket", {}).get("totalTradedVolume", 0)
+            )
             return {
                 "symbol": symbol.upper(),
                 "company_name": metadata.get("companyName", ""),
@@ -83,7 +89,7 @@ class NseConnector:
                 "prev_close": price_info.get("previousClose", 0.0),
                 "change": price_info.get("change", 0.0),
                 "change_pct": price_info.get("pChange", 0.0),
-                "volume": data.get("preOpenMarket", {}).get("totalTradedVolume", 0),
+                "volume": live_volume,
                 "week52_high": price_info.get("weekHighLow", {}).get("max", None),
                 "week52_low": price_info.get("weekHighLow", {}).get("min", None),
                 "vwap": price_info.get("vwap", None),

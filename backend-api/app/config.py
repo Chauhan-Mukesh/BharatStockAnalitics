@@ -1,5 +1,6 @@
 """Application configuration via environment variables."""
 from functools import lru_cache
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -40,6 +41,16 @@ class Settings(BaseSettings):
     # Secret key for JWT (change in production!)
     secret_key: str = "changeme-super-secret-key"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+    app_env: str = "development"
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        if (
+            self.app_env.lower() in {"production", "prod"}
+            and self.secret_key == "changeme-super-secret-key"
+        ):
+            raise ValueError("SECRET_KEY must be set to a secure value in production")
+        return self
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

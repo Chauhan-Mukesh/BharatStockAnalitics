@@ -1,7 +1,7 @@
 """Celery tasks: quote refresh."""
 from __future__ import annotations
 
-import asyncio
+import json
 import logging
 import os
 
@@ -18,12 +18,46 @@ _redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
 
 def _get_tracked_symbols() -> list[tuple[str, str]]:
-    """Return list of (exchange, symbol) from watchlist:* keys in Redis."""
+    """Return list of tracked (exchange, symbol) tuples from Redis watchlist data."""
     symbols = set()
+
+    def _extract(payload: object) -> None:
+        if isinstance(payload, dict):
+            exchange = payload.get("exchange")
+            symbol = payload.get("symbol")
+            if isinstance(exchange, str) and isinstance(symbol, str):
+                symbols.add((exchange.upper(), symbol.upper()))
+            for value in payload.values():
+                _extract(value)
+        elif isinstance(payload, list):
+            for item in payload:
+                _extract(item)
+        elif isinstance(payload, str):
+            try:
+                _extract(json.loads(payload))
+            except Exception:
+                return
+
     for key in _redis_client.scan_iter("watchlist_items:*"):
         parts = key.split(":")
-        if len(parts) == 3:
-            symbols.add((parts[1], parts[2]))
+        if len(parts) >= 3 and parts[-2].upper() in {"NSE", "BSE"} and parts[-1]:
+            symbols.add((parts[-2].upper(), parts[-1].upper()))
+            continue
+        try:
+            payload = _redis_client.get(key)
+            if payload:
+                _extract(payload)
+        except Exception:
+            continue
+
+    for key in _redis_client.scan_iter("watchlists:*"):
+        try:
+            payload = _redis_client.get(key)
+            if payload:
+                _extract(payload)
+        except Exception:
+            continue
+
     # Also add a default set for POC
     symbols.update([
         ("NSE", "BEL"), ("NSE", "INFY"), ("NSE", "RELIANCE"),
